@@ -9,8 +9,6 @@ secret_*
 ## Cargo
 /target/
 **/*.rs.bk
-/target/
-**/*.rs.bk
 
 ## Tags
 tags
