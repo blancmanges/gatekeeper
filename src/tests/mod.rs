@@ -3,10 +3,6 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 extern crate serde;
-#[macro_use]
-extern crate serde_derive;
 extern crate serde_json;
 
 mod bb_api;
-#[cfg(test)]
-mod tests;

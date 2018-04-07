@@ -35,6 +35,7 @@ The ``<type>`` SHOULD be present. The ``<scope>`` is OPTIONAL. The ``<body>`` is
 - ``feature``
 - ``fix``
 - ``docs``
+- ``tests``
 - ``fmt`` - reformatting the code
 - ``refactor``
 - ``build`` - related to build & CI/CD systems
