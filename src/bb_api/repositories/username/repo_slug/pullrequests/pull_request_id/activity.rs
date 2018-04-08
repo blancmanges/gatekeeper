@@ -14,31 +14,29 @@ pub struct Activity {
 #[derive(PartialEq, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ActivityItem {
-    Comment { comment: Value },
+    Comment { comment: Comment },
     Update { update: Value },
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct Comment {
     pub id: u32,
     pub parent: Option<CommentParent>,
     pub content: CommentContent,
     pub user: CommentUser,
-    pub created_on: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct CommentParent {
     pub id: u32,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct CommentContent {
     pub raw: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct CommentUser {
     pub username: String,
-    pub display_name: String,
 }
