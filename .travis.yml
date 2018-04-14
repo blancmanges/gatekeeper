@@ -9,10 +9,8 @@ matrix:
     - rust: nightly
   fast_finish: true
 before_script:
-  - rustup component add rustfmt-preview
+  - if [[ "${TRAVIS_RUST_VERSION}" = "stable" ]]; then rustup component add rustfmt-preview; cargo fmt --all -- --write-mode=diff; fi
+  - bash -euo pipefail .mpl-check.sh
 script:
-  - cargo fmt --all -- --write-mode=diff
   - cargo build --verbose --all
   - cargo test --verbose --all
-after_script:
-  - bash -euo pipefail .mpl-check.sh
