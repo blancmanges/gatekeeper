@@ -7,14 +7,14 @@ extern crate serde_json;
 
 mod bb_api;
 
-use self::activity::{Activity, ActivityItem, Comment, CommentContent, CommentParent, CommentUser};
+use self::activity::{ActivityItem, Comment, CommentContent, CommentParent, CommentUser};
 use super::*;
 use bb_api::repositories::username::repo_slug::pullrequests::pull_request_id::activity;
 use serde_json::value::Value;
 
 #[test]
 fn activities_to_items_empty() {
-    let inp: Vec<Activity> = vec![];
+    let inp: Vec<Paginated<ActivityItem>> = vec![];
     let out: Vec<ActivityItem> = vec![];
     assert_eq!(out, activities_to_items(inp));
 }
@@ -71,8 +71,8 @@ fn mk_comment_3() -> Comment {
 
 #[test]
 fn activities_to_items_multi_nonempty() {
-    let inp: Vec<Activity> = vec![
-        Activity {
+    let inp: Vec<Paginated<ActivityItem>> = vec![
+        Paginated {
             pagelen: 3,
             next: Some("foo".to_string()),
             values: vec![
@@ -87,7 +87,7 @@ fn activities_to_items_multi_nonempty() {
                 },
             ],
         },
-        Activity {
+        Paginated {
             pagelen: 3,
             next: None,
             values: vec![

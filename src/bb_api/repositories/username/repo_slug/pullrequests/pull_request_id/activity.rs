@@ -4,12 +4,7 @@
 
 use serde_json::value::Value;
 
-#[derive(Deserialize, PartialEq, Debug)]
-pub struct Activity {
-    pub pagelen: u32,
-    pub next: Option<String>,
-    pub values: Vec<ActivityItem>,
-}
+//pub type Activity = Paginated<ActivityItem>;
 
 #[derive(PartialEq, Debug, Deserialize)]
 #[serde(untagged)]

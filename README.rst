@@ -40,3 +40,4 @@ The ``<type>`` SHOULD be present. The ``<scope>`` is OPTIONAL. The ``<body>`` is
 - ``refactor``
 - ``build`` - related to build & CI/CD systems
 - ``meta`` - related to repository itself (e.g. .gitignore changes)
+- ``bootstrap`` - in the early stage of repo, commits meant to get basic features and prepare repo for further development

@@ -2,16 +2,17 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-mod example_input;
+pub mod example_input;
 
-use self::activity::{Activity, ActivityItem};
+use self::activity::ActivityItem;
 use bb_api::repositories::username::repo_slug::pullrequests::pull_request_id::activity;
+use bb_api::Paginated;
 use serde_json;
 
 #[test]
 fn deserialize_basic_1() {
     let data = example_input::api_page_1();
-    let v: Result<Activity, _> = serde_json::from_str(data);
+    let v: Result<Paginated<ActivityItem>, _> = serde_json::from_str(data);
 
     assert!(v.is_ok(), "Deserialization returned: {:?}", v);
 }
@@ -19,7 +20,7 @@ fn deserialize_basic_1() {
 #[test]
 fn deserialize_basic_2() {
     let data = example_input::api_page_2();
-    let v: Result<Activity, _> = serde_json::from_str(data);
+    let v: Result<Paginated<ActivityItem>, _> = serde_json::from_str(data);
 
     assert!(v.is_ok(), "Deserialization returned: {:?}", v);
 }
@@ -32,7 +33,7 @@ fn no_new_fields_allowed() {
             {"unknown_marker": {}}
         ]
     }"#;
-    let v: Result<Activity, _> = serde_json::from_str(data);
+    let v: Result<Paginated<ActivityItem>, _> = serde_json::from_str(data);
     assert!(v.is_err(), "v should have failed, but got {:?}", v);
 }
 
@@ -40,7 +41,7 @@ fn no_new_fields_allowed() {
 fn deserialize_api_page_1() {
     fn cl() -> Result<(), serde_json::Error> {
         let data = example_input::api_page_1();
-        let v: Activity = serde_json::from_str(data)?;
+        let v: Paginated<ActivityItem> = serde_json::from_str(data)?;
         assert_eq!(10, v.pagelen);
 
         let next = v.next;
@@ -64,7 +65,7 @@ fn deserialize_api_page_1() {
 fn deserialize_api_page_2() {
     fn cl() -> Result<(), serde_json::Error> {
         let data = example_input::api_page_2();
-        let v: Activity = serde_json::from_str(data)?;
+        let v: Paginated<ActivityItem> = serde_json::from_str(data)?;
         assert_eq!(10, v.pagelen);
 
         let next = v.next;
