@@ -17,6 +17,10 @@ TAGS
 ## Rendered README
 README.html
 
+## IDEs & editors
+# IntelliJ
+*.iml
+.idea
 
 ### OS & editors junk
 ################################################################################
