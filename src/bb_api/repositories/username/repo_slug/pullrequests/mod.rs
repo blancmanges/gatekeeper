@@ -9,4 +9,17 @@ pub struct PullRequest {
     pub id: u32,
     pub title: String,
     pub state: String,
+    pub links: PullRequestLinks,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct PullRequestLinks {
+    #[serde(rename = "self")]
+    pub slf: Href,
+    pub activity: Href,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct Href {
+    pub href: String,
 }

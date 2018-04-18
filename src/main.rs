@@ -17,6 +17,8 @@ use gatekeeper::unpaginate;
 use gatekeeper::bb_api::Paginated;
 use gatekeeper::bb_api::repositories::username::repo_slug::pullrequests::
     pull_request_id::activity::ActivityItem;
+use gatekeeper::bb_api::repositories::username::repo_slug::pullrequests::PullRequest;
+use gatekeeper::get_commands;
 
 fn main() {
     let mut logger = sloggers::terminal::TerminalLoggerBuilder::new();
@@ -47,11 +49,19 @@ fn main() {
                 .hide_env_values(true),
         )
         .arg(
-            Arg::with_name("bitbucket_pr_url")
-                .long("--bitbucket-repo-rul")
+            Arg::with_name("repo_owner")
+                .long("--bitbucket-repo-owner")
                 .takes_value(true)
                 .required(true)
-                .env("BITBUCKET_REPO_URL")
+                .env("BITBUCKET_REPO_OWNER")
+                .hide_env_values(true),
+        )
+        .arg(
+            Arg::with_name("repo_slug")
+                .long("--bitbucket-repo-slug")
+                .takes_value(true)
+                .required(true)
+                .env("BITBUCKET_REPO_SLUG")
                 .hide_env_values(true),
         )
         .get_matches();
@@ -60,8 +70,10 @@ fn main() {
     let bitbucket_username = app_args.value_of("bitbucket_username").unwrap();
     debug!(logger, "Retrieving bitbucket_password");
     let bitbucket_password = app_args.value_of("bitbucket_password").unwrap();
-    debug!(logger, "Retrieving bitbucket_pr_url");
-    let bitbucket_pr_url = app_args.value_of("bitbucket_pr_url").unwrap();
+    debug!(logger, "Retrieving repo_owner");
+    let repo_owner = app_args.value_of("repo_owner").unwrap();
+    debug!(logger, "Retrieving repo_slug");
+    let repo_slug = app_args.value_of("repo_slug").unwrap();
 
     debug!(logger, "Creating reqwest::Client");
     let client = reqwest::Client::new();
@@ -74,17 +86,30 @@ fn main() {
             .header(reqwest::header::ContentType::json());
         req_builder
     };
-    if let Ok(mut res) = reqwest_get(bitbucket_pr_url).send() {
-        debug!(logger, "Obtaining request response text");
-        if let Ok(res_text) = res.text() {
-            trace!(logger, "Res: {}", res_text);
-            let act: Result<Paginated<ActivityItem>, serde_json::Error> =
-                serde_json::from_str(res_text.as_str());
-            if let Ok(activity) = act {
-                debug!(logger, "{:?}", activity);
-                let all_res = unpaginate(activity, reqwest_get, &logger).unwrap();
-                debug!(logger, "{:?}", all_res);
-            }
-        }
+
+    let repo_base_url = format!(
+        "https://api.bitbucket.org/2.0/repositories/{}/{}",
+        repo_owner, repo_slug
+    );
+    let repo_url_prs = format!("{}/pullrequests/", repo_base_url);
+
+    let mut prs_first = reqwest_get(repo_url_prs.as_str()).send().unwrap();
+    let prs_first_txt = prs_first.text().unwrap();
+    let prs_first: Paginated<PullRequest> = serde_json::from_str(prs_first_txt.as_str()).unwrap();
+    let prs = unpaginate(prs_first, &reqwest_get, &logger).unwrap();
+
+    debug!(logger, "PRs: {:?}", prs);
+
+    for pr in &prs {
+        debug!(logger, "PR id: {} title: {}", pr.id, pr.title);
+
+        let mut pr_first = reqwest_get(pr.links.activity.href.as_str()).send().unwrap();
+        let pr_first_txt = pr_first.text().unwrap();
+        let pr_first: Paginated<ActivityItem> =
+            serde_json::from_str(pr_first_txt.as_str()).unwrap();
+        let pr = unpaginate(pr_first, &reqwest_get, &logger).unwrap();
+        debug!(logger, "PR: {:?}", pr);
+        let cmds = get_commands(pr);
+        debug!(logger, "Commands: {:?}", cmds);
     }
 }
