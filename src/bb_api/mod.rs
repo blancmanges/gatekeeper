@@ -3,3 +3,10 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 pub mod repositories;
+
+#[derive(Deserialize, PartialEq, Debug, Clone)]
+pub struct Paginated<T> {
+    pub pagelen: u32,
+    pub values: Vec<T>,
+    pub next: Option<String>,
+}

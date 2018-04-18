@@ -2,19 +2,25 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+extern crate reqwest;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+#[macro_use]
+extern crate slog;
+extern crate sloggers;
 
-mod bb_api;
+pub mod bb_api;
 #[cfg(test)]
 mod tests;
 
-use self::activity::{Activity, ActivityItem, Comment};
+use self::activity::{ActivityItem, Comment};
 use bb_api::repositories::username::repo_slug::pullrequests::pull_request_id::activity;
+use bb_api::Paginated;
+use std::fmt::Debug;
 
-pub fn activities_to_items(act: Vec<Activity>) -> Vec<ActivityItem> {
+pub fn activities_to_items(act: Vec<Paginated<ActivityItem>>) -> Vec<ActivityItem> {
     let mut res = Vec::new();
     for mut item in act {
         res.append(&mut item.values);
@@ -66,4 +72,32 @@ pub fn get_commands(act_items: Vec<ActivityItem>) -> Vec<UserCommand> {
         }
     }
     res
+}
+
+pub fn unpaginate<T, F>(
+    mut current: Paginated<T>,
+    reqwest_get: F,
+    logger: &slog::Logger,
+) -> Result<Vec<T>, String>
+where
+    T: serde::de::DeserializeOwned + Debug,
+    F: for<'a> Fn(&'a str) -> reqwest::RequestBuilder,
+{
+    let mut res: Vec<T> = Vec::new();
+    res.append(&mut current.values);
+
+    while let Some(next_url) = current.next {
+        debug!(logger, "Requesting next page: {}", next_url);
+        let mut result = reqwest_get(next_url.as_str())
+            .send()
+            .map_err(|e| format!("{}", e))?;
+        trace!(logger, "Response: {:?}", result);
+        let res_txt = result.text().map_err(|e| e.to_string())?;
+
+        current = serde_json::from_str(res_txt.as_str()).map_err(|e| e.to_string())?;
+        trace!(logger, "Deserialized response: {:?}", current);
+        res.append(&mut current.values);
+    }
+
+    Ok(res)
 }
