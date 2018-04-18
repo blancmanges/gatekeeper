@@ -61,7 +61,7 @@ pub fn get_commands(act_items: Vec<ActivityItem>) -> Vec<UserCommand> {
     for mut comment in toplevel_comments(act_items) {
         for comment_line in comment.content.raw.lines() {
             let mut splitter = comment_line.split_whitespace();
-            if Some("@g") == splitter.next() {
+            if Some("!g") == splitter.next() {
                 for command in splitter {
                     res.push(UserCommand {
                         user: comment.user.username.clone(),

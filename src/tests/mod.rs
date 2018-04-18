@@ -26,7 +26,7 @@ fn mk_comment_1() -> Comment {
         content: CommentContent {
             raw: r#"comment1-raw
             Another line. 𮯛
-            @g command11
+            !g command11
             Yet 🎅 another line
 
 
@@ -44,7 +44,7 @@ fn mk_comment_2() -> Comment {
         parent: Some(CommentParent { id: 123 }),
         content: CommentContent {
             raw: r#"comment2-raw
-            @g command21"#.to_string(),
+            !g command21"#.to_string(),
         },
         user: CommentUser {
             username: "comment2-user".to_string(),
@@ -58,10 +58,10 @@ fn mk_comment_3() -> Comment {
         parent: None,
         content: CommentContent {
             raw: r#"comment3-raw first line.
-            @g command31 command32
+            !g command31 command32
             Another line... 𠅻𠒯
 
-            @g command33"#.to_string(),
+            !g command33"#.to_string(),
         },
         user: CommentUser {
             username: "comment3-user".to_string(),
