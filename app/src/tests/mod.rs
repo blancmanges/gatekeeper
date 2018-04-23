@@ -73,7 +73,6 @@ fn mk_comment_3() -> Comment {
 fn activities_to_items_multi_nonempty() {
     let inp: Vec<Paginated<ActivityItem>> = vec![
         Paginated {
-            pagelen: 3,
             next: Some("foo".to_string()),
             values: vec![
                 ActivityItem::Comment {
@@ -88,7 +87,6 @@ fn activities_to_items_multi_nonempty() {
             ],
         },
         Paginated {
-            pagelen: 3,
             next: None,
             values: vec![
                 ActivityItem::Update {

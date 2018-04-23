@@ -19,6 +19,7 @@ use self::activity::{ActivityItem, Comment};
 use bb_api::repositories::username::repo_slug::pullrequests::pull_request_id::activity;
 use bb_api::Paginated;
 use std::fmt::Debug;
+use bb_api::repositories::username::repo_slug::pullrequests::pull_request_id::activity::Approval;
 
 pub fn activities_to_items(act: Vec<Paginated<ActivityItem>>) -> Vec<ActivityItem> {
     let mut res = Vec::new();
@@ -29,16 +30,16 @@ pub fn activities_to_items(act: Vec<Paginated<ActivityItem>>) -> Vec<ActivityIte
 }
 
 pub fn toplevel_comments(act_items: Vec<ActivityItem>) -> Vec<Comment> {
-    let mut res = Vec::new();
+    let mut activities = Vec::new();
     for mut item in act_items {
         match item {
             ActivityItem::Comment {
                 comment: comment @ Comment { parent: None, .. },
-            } => res.push(comment),
+            } => activities.push(comment),
             _ => (),
         }
     }
-    res
+    activities
 }
 
 #[derive(PartialEq, Debug)]
@@ -57,21 +58,34 @@ impl UserCommand {
 }
 
 pub fn get_commands(act_items: Vec<ActivityItem>) -> Vec<UserCommand> {
-    let mut res = Vec::new();
-    for mut comment in toplevel_comments(act_items) {
-        for comment_line in comment.content.raw.lines() {
-            let mut splitter = comment_line.split_whitespace();
-            if Some("!g") == splitter.next() {
-                for command in splitter {
-                    res.push(UserCommand {
-                        user: comment.user.username.clone(),
-                        command: command.to_string(),
-                    })
+    let mut commands = Vec::new();
+
+    for mut activity in act_items {
+        match activity {
+            ActivityItem::Comment {
+                comment: comment @ Comment { parent: None, .. },
+            } => for comment_line in comment.content.raw.lines() {
+                let mut splitter = comment_line.split_whitespace();
+                if Some("!g") == splitter.next() {
+                    for command in splitter {
+                        commands.push(UserCommand {
+                            user: comment.user.username.clone(),
+                            command: command.to_string(),
+                        })
+                    }
                 }
-            }
+            },
+            ActivityItem::Approval {
+                approval: Approval { user },
+            } => commands.push(UserCommand {
+                user: user.username.clone(),
+                command: "\\+1".to_string(),
+            }),
+            _ => {}
         }
     }
-    res
+
+    commands
 }
 
 pub fn unpaginate<T, F>(
