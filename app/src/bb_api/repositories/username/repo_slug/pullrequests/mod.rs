@@ -10,6 +10,7 @@ pub struct PullRequest {
     pub title: String,
     pub state: String,
     pub links: PullRequestLinks,
+    pub author: PullRequestUser,
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -22,4 +23,9 @@ pub struct PullRequestLinks {
 #[derive(Deserialize, PartialEq, Debug)]
 pub struct Href {
     pub href: String,
+}
+
+#[derive(Deserialize, PartialEq, Debug)]
+pub struct PullRequestUser {
+    pub username: String,
 }

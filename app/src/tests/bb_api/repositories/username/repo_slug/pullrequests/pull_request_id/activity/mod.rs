@@ -42,7 +42,6 @@ fn deserialize_api_page_1() {
     fn cl() -> Result<(), serde_json::Error> {
         let data = example_input::api_page_1();
         let v: Paginated<ActivityItem> = serde_json::from_str(data)?;
-        assert_eq!(10, v.pagelen);
 
         let next = v.next;
         assert_eq!(Some(String::from("https://api.bitbucket.org/2.0/repositories/kgadek/test-repo/pullrequests/1/activity?ctx=foobar")), next);
@@ -66,7 +65,6 @@ fn deserialize_api_page_2() {
     fn cl() -> Result<(), serde_json::Error> {
         let data = example_input::api_page_2();
         let v: Paginated<ActivityItem> = serde_json::from_str(data)?;
-        assert_eq!(10, v.pagelen);
 
         let next = v.next;
         assert_eq!(None, next);

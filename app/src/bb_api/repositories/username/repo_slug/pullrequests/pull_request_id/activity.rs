@@ -11,6 +11,7 @@ use serde_json::value::Value;
 pub enum ActivityItem {
     Comment { comment: Comment },
     Update { update: Value },
+    Approval { approval: Approval },
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
@@ -18,6 +19,11 @@ pub struct Comment {
     pub id: u32,
     pub parent: Option<CommentParent>,
     pub content: CommentContent,
+    pub user: CommentUser,
+}
+
+#[derive(Deserialize, PartialEq, Debug, Clone)]
+pub struct Approval {
     pub user: CommentUser,
 }
 
