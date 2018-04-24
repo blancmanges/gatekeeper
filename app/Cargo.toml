@@ -4,7 +4,7 @@ version = "0.0.1"
 authors = ["Konrad Gądek <kgadek@gmail.com>"]
 license = "MPL-2.0"
 repository = "https://github.com/blancmanges/gatekeeper"
-description = "Gatekeeper, a stupid bitbucket bot."
+description = "Gatekeeper, a bitbucket bot."
 
 [dependencies]
 serde = "1.0.39"
