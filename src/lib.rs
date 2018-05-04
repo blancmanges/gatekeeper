@@ -20,14 +20,14 @@ use bitbucket::Comment;
 use bitbucket::Paginated;
 
 #[derive(Debug)]
-pub struct PullrequestsURLs {
+pub struct RepositoryURLs {
     pub api_url: String,
     pub web_url: String,
 }
 
-impl PullrequestsURLs {
-    pub fn new(repo_owner: &str, repo_slug: &str) -> PullrequestsURLs {
-        PullrequestsURLs {
+impl RepositoryURLs {
+    pub fn new(repo_owner: &str, repo_slug: &str) -> RepositoryURLs {
+        RepositoryURLs {
             api_url: format!(
                 "https://api.bitbucket.org/2.0/repositories/{}/{}/pullrequests",
                 repo_owner, repo_slug
@@ -51,7 +51,7 @@ pub struct PullrequestIdURLs {
 }
 
 impl PullrequestIdURLs {
-    pub fn new(pullrequests_link: &PullrequestsURLs, id: u32) -> PullrequestIdURLs {
+    pub fn new(pullrequests_link: &RepositoryURLs, id: u32) -> PullrequestIdURLs {
         let api_url = format!("{}/{}", pullrequests_link.api_url, id);
         let web_url = format!("{}/{}", pullrequests_link.web_url, id);
         PullrequestIdURLs { api_url, web_url }

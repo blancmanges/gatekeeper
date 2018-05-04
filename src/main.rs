@@ -19,7 +19,7 @@ use gatekeeper::bitbucket::unpaginate;
 use gatekeeper::bitbucket::BitBucketApiBasicAuth;
 use gatekeeper::bitbucket::PullRequest;
 use gatekeeper::get_commands;
-use gatekeeper::PullrequestsURLs;
+use gatekeeper::RepositoryURLs;
 
 use failure::Error;
 use sloggers::Build;
@@ -71,7 +71,7 @@ fn repo_prs(
     println!("{}", repo_slug);
     println!("------------------------------------------------------------------------");
 
-    let urls = PullrequestsURLs::new(repo_owner, repo_slug);
+    let urls = RepositoryURLs::new(repo_owner, repo_slug);
 
     debug!(logger, "Obtaining BB/{{repo}}/pullrequests/");
     let pullrequests = unpaginate(&urls.api_url, &client, &logger)?;
@@ -86,7 +86,7 @@ fn repo_prs(
 
 fn repo_pr(
     pr: PullRequest,
-    urls: &PullrequestsURLs,
+    urls: &RepositoryURLs,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
 ) -> Result<(), Error> {
