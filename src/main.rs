@@ -41,8 +41,11 @@ struct Opt {
 fn app(logger: &slog::Logger) -> Result<(), Error> {
     debug!(logger, "Starting application");
     let app_args = Opt::from_args();
-    let client =
-        BitBucketApiBasicAuth::new(app_args.bitbucket_username, app_args.bitbucket_password);
+    let client = BitBucketApiBasicAuth::new(
+        app_args.bitbucket_username,
+        app_args.bitbucket_password,
+        reqwest::Client::new(),
+    );
 
     debug!(logger, "Repositories: {:?}", app_args.repo_slugs);
     for repo_slug in &app_args.repo_slugs {

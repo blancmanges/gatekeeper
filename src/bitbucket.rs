@@ -17,9 +17,13 @@ pub struct BitBucketApiBasicAuth {
 }
 
 impl BitBucketApiBasicAuth {
-    pub fn new(username: String, password: String) -> BitBucketApiBasicAuth {
+    pub fn new(
+        username: String,
+        password: String,
+        client: reqwest::Client,
+    ) -> BitBucketApiBasicAuth {
         BitBucketApiBasicAuth {
-            client: reqwest::Client::new(),
+            client,
             username,
             password,
         }
