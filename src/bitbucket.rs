@@ -143,7 +143,7 @@ pub struct User {
     pub username: String,
 }
 
-pub fn get_all<T>(
+pub fn unpaginate<T>(
     url: &str,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
