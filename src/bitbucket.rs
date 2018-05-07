@@ -38,16 +38,16 @@ impl BitBucketApiBasicAuth {
 }
 
 #[derive(Deserialize, PartialEq, Debug, Clone)]
-pub struct Paginated<T> {
-    pub values: Vec<T>,
-    pub next: Option<String>,
+struct Paginated<T> {
+    values: Vec<T>,
+    next: Option<String>,
 }
 
 impl<T> Paginated<T>
 where
     T: serde::de::DeserializeOwned + Debug,
 {
-    pub fn unpaginate(
+    fn values_of_following_pages(
         self,
         client: &BitBucketApiBasicAuth,
         logger: &slog::Logger,
@@ -71,6 +71,29 @@ where
 
         Ok(res)
     }
+}
+
+pub fn values_from_all_pages<T>(
+    url: &str,
+    client: &BitBucketApiBasicAuth,
+    logger: &slog::Logger,
+) -> Result<Vec<T>, Error>
+where
+    T: serde::de::DeserializeOwned + Debug,
+{
+    let logger = logger.new(o!(
+            "url" => url.to_string(),
+        ));
+
+    trace!(logger, "Obtaining first page");
+    let mut first_page = client.get_json(url)?;
+    let first_page = first_page.text()?;
+    trace!(logger, "Response text: {}", first_page);
+    trace!(logger, "Deserializing");
+    let first_page: Paginated<T> = serde_json::from_str(first_page.as_str())?;
+
+    trace!(logger, "Getting remaining pages");
+    first_page.values_of_following_pages(&client, &logger)
 }
 
 #[derive(Deserialize, PartialEq, Debug)]
@@ -141,27 +164,4 @@ pub struct Approval {
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct User {
     pub username: String,
-}
-
-pub fn unpaginate<T>(
-    url: &str,
-    client: &BitBucketApiBasicAuth,
-    logger: &slog::Logger,
-) -> Result<Vec<T>, Error>
-where
-    T: serde::de::DeserializeOwned + Debug,
-{
-    let logger = logger.new(o!(
-        "url" => url.to_string(),
-    ));
-
-    trace!(logger, "Obtaining first page");
-    let mut first_page = client.get_json(url)?;
-    let first_page = first_page.text()?;
-    trace!(logger, "Response text: {}", first_page);
-    trace!(logger, "Deserializing");
-    let first_page: Paginated<T> = serde_json::from_str(first_page.as_str())?;
-
-    trace!(logger, "Getting remaining pages");
-    first_page.unpaginate(&client, &logger)
 }

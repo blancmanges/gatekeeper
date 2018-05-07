@@ -15,9 +15,9 @@ extern crate structopt;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
-use gatekeeper::bitbucket::unpaginate;
 use gatekeeper::bitbucket::BitBucketApiBasicAuth;
 use gatekeeper::bitbucket::PullRequest;
+use gatekeeper::bitbucket::values_from_all_pages;
 use gatekeeper::get_commands;
 use gatekeeper::RepositoryURLs;
 
@@ -74,7 +74,7 @@ fn repo_prs(
     let urls = RepositoryURLs::new(repo_owner, repo_slug);
 
     debug!(logger, "Obtaining BB/{{repo}}/pullrequests/");
-    let pullrequests = unpaginate(&urls.api_url, &client, &logger)?;
+    let pullrequests = values_from_all_pages(&urls.api_url, &client, &logger)?;
     trace!(logger, "PRs: {:?}", pullrequests);
 
     for pr in pullrequests {
@@ -102,7 +102,7 @@ fn repo_pr(
 
     debug!(logger, "Obtaining BB/{{repo}}/pullrequests/{{id}}");
     let activity = {
-        let mut activity = unpaginate(&pr.links.activity.href, &client, &logger)?;
+        let mut activity = values_from_all_pages(&pr.links.activity.href, &client, &logger)?;
         activity.reverse();
         activity
     };

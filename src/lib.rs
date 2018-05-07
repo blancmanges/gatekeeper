@@ -17,7 +17,6 @@ pub mod bitbucket;
 use bitbucket::ActivityItem;
 use bitbucket::Approval;
 use bitbucket::Comment;
-use bitbucket::Paginated;
 
 #[derive(Debug)]
 pub struct RepositoryURLs {
@@ -76,10 +75,6 @@ impl UserCommand {
             command: command.to_string(),
         }
     }
-}
-
-pub fn activities_to_items(act: Vec<Paginated<ActivityItem>>) -> Vec<ActivityItem> {
-    act.into_iter().flat_map(|item| item.values).collect()
 }
 
 pub fn toplevel_comments(act_items: Vec<ActivityItem>) -> Vec<Comment> {
