@@ -4,6 +4,7 @@
 
 extern crate failure;
 extern crate gatekeeper;
+extern crate regex;
 extern crate reqwest;
 extern crate serde_json;
 #[macro_use]
@@ -12,16 +13,20 @@ extern crate sloggers;
 #[macro_use]
 extern crate structopt;
 
+use std::mem;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 use gatekeeper::bitbucket::BitBucketApiBasicAuth;
 use gatekeeper::bitbucket::PullRequest;
 use gatekeeper::bitbucket::values_from_all_pages;
-use gatekeeper::get_commands;
+use gatekeeper::bitbucket::ActivityItem;
+use gatekeeper::bitbucket::Approval;
 use gatekeeper::RepositoryURLs;
+use gatekeeper::ReviewStatus;
 
 use failure::Error;
+use regex::Regex;
 use sloggers::Build;
 use structopt::StructOpt;
 
@@ -102,27 +107,92 @@ fn repo_pr(
 
     debug!(logger, "Obtaining BB/{{repo}}/pullrequests/{{id}}");
     let activity = {
-        let mut activity = values_from_all_pages(&pr.links.activity.href, &client, &logger)?;
+        let mut activity =
+            values_from_all_pages::<ActivityItem>(&pr.links.activity.href, &client, &logger)?;
         activity.reverse();
         activity
     };
     trace!(logger, "Activity: {:?}", activity);
 
-    let commands = get_commands(activity);
-    trace!(logger, "Commands: {:?}", commands);
+    let mut review_status: HashMap<String, ReviewStatus, RandomState> = HashMap::new();
+    let re_vote = Regex::new(r"^(\\?\+|-)?\d$")?;
 
-    // ---------------------------------------------------------------------------------------------
-
-    let mut review_status: HashMap<String, String, RandomState> = HashMap::new();
-    for user_command in commands {
-        match user_command.command.as_str() {
-            "+1" | "+0" | "-1" => {
-                let vote = review_status
-                    .entry(user_command.user.to_string())
-                    .or_insert(String::from("0"));
-                *vote = user_command.command;
+    for change in activity {
+        trace!(logger, "Change: {:?}", change);
+        match change {
+            ActivityItem::Approval {
+                approval: Approval { user },
+            } => {
+                let approve_user = user.username.to_string();
+                debug!(logger, "User {:?} approves", approve_user);
+                review_status.insert(approve_user, ReviewStatus::Voted { vote: 1 });
             }
-            _ => {}
+
+            ActivityItem::Comment { comment } => {
+                let comment_user = comment.user.username;
+
+                for (_waiting_user, status) in review_status.iter_mut() {
+                    let new_status = {
+                        let s = mem::replace(status, ReviewStatus::NoReview);
+                        match s {
+                            ReviewStatus::RFC { ref user } if *user == comment_user => {
+                                ReviewStatus::RFCAnswered {
+                                    user: comment_user.clone(),
+                                }
+                            }
+                            x => x,
+                        }
+                    };
+                    mem::replace(status, new_status);
+                }
+
+                if comment.parent == None {
+                    let user_review = review_status
+                        .entry(comment_user.clone())
+                        .or_insert(ReviewStatus::NoReview);
+
+                    for comment_line in comment.content.raw.lines() {
+                        trace!(logger, "Line: {}", comment_line);
+                        let mut splitter = comment_line.split_whitespace();
+                        if Some("!g") == splitter.next() {
+                            while let Some(cmd) = splitter.next() {
+                                debug!(logger, "CMD: {}", cmd);
+                                match cmd {
+                                    vote if re_vote.is_match(vote) => {
+                                        *user_review = ReviewStatus::Voted {
+                                            vote: cmd.trim_left_matches('\\').parse::<i32>()?,
+                                        }
+                                    }
+                                    "rfc" => if let Some(wait_for_user) = splitter.next() {
+                                        debug!(logger, "ARG: {}", wait_for_user);
+                                        *user_review = ReviewStatus::RFC {
+                                            user: wait_for_user.to_string(),
+                                        }
+                                    },
+                                    unrecognized_cmd => {
+                                        warn!(logger, "Unrecognized cmd: {}", unrecognized_cmd)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ActivityItem::Update { .. } => {
+                for (_waiting_user, status) in review_status.iter_mut() {
+                    let new_status = {
+                        let s = mem::replace(status, ReviewStatus::NoReview);
+                        match s {
+                            ReviewStatus::Voted { vote } => {
+                                ReviewStatus::VoteNeedReevaluation { voted: vote }
+                            }
+                            x => x,
+                        }
+                    };
+                    mem::replace(status, new_status);
+                }
+            }
         }
     }
 
@@ -131,8 +201,8 @@ fn repo_pr(
     println!("  PR {}: {}", pr.id, pr.title);
     println!("    -- author: {}", pr.author.username);
     println!("    -- link: {}", urls.web_url);
-    for (user, vote) in &review_status {
-        println!("    {}: {}", user, vote);
+    for (user, status) in &review_status {
+        println!("    {}: {:?}", user, status);
     }
 
     Ok(())

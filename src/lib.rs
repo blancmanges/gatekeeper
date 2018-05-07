@@ -14,10 +14,6 @@ extern crate sloggers;
 
 pub mod bitbucket;
 
-use bitbucket::ActivityItem;
-use bitbucket::Approval;
-use bitbucket::Comment;
-
 #[derive(Debug)]
 pub struct RepositoryURLs {
     pub api_url: String,
@@ -77,44 +73,11 @@ impl UserCommand {
     }
 }
 
-pub fn toplevel_comments(act_items: Vec<ActivityItem>) -> Vec<Comment> {
-    act_items
-        .into_iter()
-        .filter_map(|item| match item {
-            ActivityItem::Comment { comment } => if comment.is_top_level() {
-                Some(comment)
-            } else {
-                None
-            },
-            _ => None,
-        })
-        .collect()
-}
-
-pub fn get_commands(act_items: Vec<ActivityItem>) -> Vec<UserCommand> {
-    let mut commands = Vec::new();
-
-    for mut activity in act_items {
-        match activity {
-            ActivityItem::Comment {
-                comment: comment @ Comment { parent: None, .. },
-            } => for comment_line in comment.content.raw.lines() {
-                let mut splitter = comment_line.split_whitespace();
-                if Some("!g") == splitter.next() {
-                    for command in splitter {
-                        commands.push(UserCommand::new(&comment.user.username, command))
-                    }
-                }
-            },
-            ActivityItem::Approval {
-                approval: Approval { user },
-            } => commands.push(UserCommand {
-                user: user.username.clone(),
-                command: "+1".to_string(),
-            }),
-            _ => {}
-        }
-    }
-
-    commands
+#[derive(Debug)]
+pub enum ReviewStatus {
+    NoReview,
+    Voted { vote: i32 },
+    VoteNeedReevaluation { voted: i32 },
+    RFC { user: String },
+    RFCAnswered { user: String },
 }
