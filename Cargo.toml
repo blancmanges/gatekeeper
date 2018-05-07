@@ -9,7 +9,7 @@ description = "Gatekeeper, a bitbucket bot."
 [dependencies]
 failure = "0.1.1"
 reqwest = "0.8.5"
-serde = "1.0.39"
+serde = "1.0.47"
 serde_derive = "1.0.39"
 serde_json = "1.0.15"
 slog = { version = "2.2.3", features = ["max_level_trace", "release_max_level_info"] }
