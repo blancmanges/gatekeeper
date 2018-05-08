@@ -3,6 +3,7 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 extern crate failure;
+extern crate regex;
 extern crate reqwest;
 extern crate serde;
 #[macro_use]
@@ -13,6 +14,15 @@ extern crate slog;
 extern crate sloggers;
 
 pub mod bitbucket;
+
+use std::collections::hash_map::RandomState;
+use std::collections::HashMap;
+
+use bitbucket::ActivityItem;
+use bitbucket::Approval;
+
+use failure::Error;
+use regex::Regex;
 
 #[derive(Debug)]
 pub struct RepositoryURLs {
@@ -80,4 +90,106 @@ pub enum ReviewStatus {
     VoteNeedReevaluation { voted: i32 },
     RFC { user: String },
     RFCAnswered { user: String },
+}
+
+#[derive(Debug)]
+pub struct PullRequestState<'a> {
+    pub review_status: HashMap<String, ReviewStatus, RandomState>,
+    logger: &'a slog::Logger,
+    regex_vote: Regex,
+}
+
+impl<'a> PullRequestState<'a> {
+    pub fn from_activity(
+        activity: Vec<ActivityItem>,
+        logger: &'a slog::Logger,
+    ) -> Result<PullRequestState<'a>, Error> {
+        let mut pr_state = PullRequestState::new(logger)?;
+
+        for change in activity {
+            trace!(pr_state.logger, "Change: {:?}", change);
+            match change {
+                ActivityItem::Approval {
+                    approval: Approval { user },
+                } => {
+                    let approve_user = user.username.to_string();
+                    debug!(pr_state.logger, "User {:?} approves", approve_user);
+                    pr_state
+                        .review_status
+                        .insert(approve_user, ReviewStatus::Voted { vote: 1 });
+                }
+
+                ActivityItem::Comment { comment } => {
+                    let comment_user = comment.user.username;
+
+                    for status in pr_state.review_status.values_mut() {
+                        let should_update = match *status {
+                            ReviewStatus::RFC { ref user } if *user == comment_user => true,
+                            _ => false,
+                        };
+                        if should_update {
+                            *status = ReviewStatus::RFCAnswered {
+                                user: comment_user.clone(),
+                            };
+                        }
+                    }
+
+                    if comment.parent == None {
+                        let user_review = pr_state
+                            .review_status
+                            .entry(comment_user.clone())
+                            .or_insert(ReviewStatus::NoReview);
+
+                        for comment_line in comment.content.raw.lines() {
+                            trace!(pr_state.logger, "Line: {}", comment_line);
+                            let mut splitter = comment_line.split_whitespace();
+                            if Some("!g") == splitter.next() {
+                                while let Some(cmd) = splitter.next() {
+                                    debug!(pr_state.logger, "CMD: {}", cmd);
+                                    match cmd {
+                                        vote if pr_state.regex_vote.is_match(vote) => {
+                                            *user_review = ReviewStatus::Voted {
+                                                vote: cmd.trim_left_matches('\\').parse::<i32>()?,
+                                            }
+                                        }
+                                        "rfc" => if let Some(wait_for_user) = splitter.next() {
+                                            debug!(pr_state.logger, "ARG: {}", wait_for_user);
+                                            *user_review = ReviewStatus::RFC {
+                                                user: wait_for_user.to_string(),
+                                            }
+                                        },
+                                        unrecognized_cmd => warn!(
+                                            pr_state.logger,
+                                            "Unrecognized cmd: {}", unrecognized_cmd
+                                        ),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ActivityItem::Update { .. } => for status in pr_state.review_status.values_mut() {
+                    let should_update = match *status {
+                        ReviewStatus::Voted { vote } => Some(vote),
+                        _ => None,
+                    };
+                    if let Some(vote) = should_update {
+                        *status = ReviewStatus::VoteNeedReevaluation { voted: vote };
+                    }
+                },
+            }
+        }
+
+        Ok(pr_state)
+    }
+
+    fn new(logger: &'a slog::Logger) -> Result<PullRequestState<'a>, Error> {
+        let regex_vote = Regex::new(r"^(\\?\+|-)?\d$")?;
+        Ok(PullRequestState {
+            review_status: HashMap::new(),
+            logger,
+            regex_vote,
+        })
+    }
 }
