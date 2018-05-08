@@ -20,6 +20,7 @@ use std::collections::HashMap;
 
 use bitbucket::ActivityItem;
 use bitbucket::Approval;
+use bitbucket::PullRequest;
 
 use failure::Error;
 use regex::Regex;
@@ -93,18 +94,22 @@ pub enum ReviewStatus {
 }
 
 #[derive(Debug)]
-pub struct PullRequestState<'a> {
+pub struct PullRequestState {
     pub review_status: HashMap<String, ReviewStatus, RandomState>,
-    logger: &'a slog::Logger,
+    logger: slog::Logger,
     regex_vote: Regex,
+    pub urls: PullrequestIdURLs,
+    pub pr: PullRequest,
 }
 
-impl<'a> PullRequestState<'a> {
+impl PullRequestState {
     pub fn from_activity(
+        pr: PullRequest,
         activity: Vec<ActivityItem>,
-        logger: &'a slog::Logger,
-    ) -> Result<PullRequestState<'a>, Error> {
-        let mut pr_state = PullRequestState::new(logger)?;
+        urls: PullrequestIdURLs,
+        logger: &slog::Logger,
+    ) -> Result<PullRequestState, Error> {
+        let mut pr_state = PullRequestState::new(pr, urls, logger)?;
 
         for change in activity {
             trace!(pr_state.logger, "Change: {:?}", change);
@@ -184,12 +189,19 @@ impl<'a> PullRequestState<'a> {
         Ok(pr_state)
     }
 
-    fn new(logger: &'a slog::Logger) -> Result<PullRequestState<'a>, Error> {
+    fn new(
+        pr: PullRequest,
+        urls: PullrequestIdURLs,
+        logger: &slog::Logger,
+    ) -> Result<PullRequestState, Error> {
         let regex_vote = Regex::new(r"^(\\?\+|-)?\d$")?;
+        let logger = logger.new(o!());
         Ok(PullRequestState {
             review_status: HashMap::new(),
             logger,
             regex_vote,
+            urls,
+            pr,
         })
     }
 }

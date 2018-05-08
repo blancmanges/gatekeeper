@@ -96,7 +96,7 @@ where
     first_page.values_of_following_pages(&client, &logger)
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct PullRequest {
     pub id: u32,
     pub title: String,
@@ -105,19 +105,19 @@ pub struct PullRequest {
     pub author: PullRequestUser,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct PullRequestLinks {
     #[serde(rename = "self")]
     pub slf: Href,
     pub activity: Href,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct Href {
     pub href: String,
 }
 
-#[derive(Deserialize, PartialEq, Debug)]
+#[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct PullRequestUser {
     pub username: String,
 }

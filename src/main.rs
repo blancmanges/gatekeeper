@@ -50,6 +50,7 @@ fn main() {
 
 fn app(logger: &slog::Logger) -> Result<(), Error> {
     debug!(logger, "Starting application");
+
     trace!(logger, "Processing args");
     let app_args = Opt::from_args();
 
@@ -62,10 +63,42 @@ fn app(logger: &slog::Logger) -> Result<(), Error> {
 
     debug!(logger, "Repositories to process: {:?}", app_args.repo_slugs);
     for repo_slug in &app_args.repo_slugs {
-        repo_prs(&app_args.repo_owner, &repo_slug, &client, &logger)?;
+        let repo_prs = repo_prs(&app_args.repo_owner, &repo_slug, &client, &logger)?;
+
+        trace!(logger, "Showing results for {}", repo_slug);
+        display_repo(&repo_slug, &logger);
+        for pr in repo_prs {
+            display_pr_results(pr, &logger);
+        }
     }
 
+    debug!(logger, "Application execution completed");
     Ok(())
+}
+
+fn display_repo(repo_slug: &str, _logger: &slog::Logger) {
+    println!("{}", repo_slug);
+    println!("------------------------------------------------------------------------");
+}
+
+fn display_pr_results(res: Result<PullRequestState, (PullRequest, Error)>, logger: &slog::Logger) {
+    match res {
+        Err((pr, e)) => {
+            error!(logger, "Error processing PR {}. Err: {}", pr.id, e);
+            println!("  PR {}: {}", pr.id, pr.title);
+            println!("    -- author: {}", pr.author.username);
+            println!("    -- link: {}", pr.links.slf.href);
+            println!("    PROCESSING ERROR");
+        }
+        Ok(pr_state) => {
+            println!("  PR {}: {}", pr_state.pr.id, pr_state.pr.title);
+            println!("    -- author: {}", pr_state.pr.author.username);
+            println!("    -- link: {}", pr_state.urls.web_url);
+            for (user, status) in &pr_state.review_status {
+                println!("    {}: {:?}", user, status);
+            }
+        }
+    }
 }
 
 fn repo_prs(
@@ -73,28 +106,24 @@ fn repo_prs(
     repo_slug: &str,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
-) -> Result<(), Error> {
+) -> Result<Vec<Result<PullRequestState, (PullRequest, Error)>>, Error> {
     let logger = logger.new(o!(
         "repo_owner" => repo_owner.to_string(),
         "repo_slug" => repo_slug.to_string(),
     ));
 
     debug!(logger, "Processing repo");
-
-    println!("{}", repo_slug);
-    println!("------------------------------------------------------------------------");
-
     let urls = RepositoryURLs::new(repo_owner, repo_slug);
 
-    debug!(logger, "Obtaining BB/{{repo}}/pullrequests/");
-    let pullrequests = values_from_all_pages(&urls.api_url, &client, &logger)?;
-    trace!(logger, "PRs: {:?}", pullrequests);
+    trace!(logger, "Obtaining BB/{{repo}}/pullrequests/");
+    let pullrequests = values_from_all_pages::<PullRequest>(&urls.api_url, &client, &logger)?;
 
-    for pr in pullrequests {
-        repo_pr(pr, &urls, &client, &logger)?;
-    }
-
-    Ok(())
+    debug!(logger, "Pull requests: {:?}", pullrequests);
+    let res = pullrequests
+        .into_iter()
+        .map(|pr| repo_pr(pr.clone(), &urls, &client, &logger).map_err(|e| (pr, e)))
+        .collect();
+    Ok(res)
 }
 
 fn repo_pr(
@@ -102,18 +131,17 @@ fn repo_pr(
     urls: &RepositoryURLs,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
-) -> Result<(), Error> {
+) -> Result<PullRequestState, Error> {
     let logger = logger.new(o!(
         "pr_id" => pr.id,
     ));
+    debug!(logger, "Processing PR #{}: {}", pr.id, pr.title);
+    trace!(logger, "PR: {:?}", pr);
 
     let urls = urls.with_id(pr.id);
-
-    debug!(logger, "PR title: {}", pr.title);
-    trace!(logger, "PR: {:?}", pr);
     trace!(logger, "Urls: {:?}", urls);
 
-    debug!(logger, "Obtaining BB/{{repo}}/pullrequests/{{id}}");
+    debug!(logger, "Obtaining PR activity");
     let activity = {
         let mut activity =
             values_from_all_pages::<ActivityItem>(&pr.links.activity.href, &client, &logger)?;
@@ -121,14 +149,7 @@ fn repo_pr(
         activity
     };
     trace!(logger, "Activity: {:?}", activity);
-    let pr_state = PullRequestState::from_activity(activity, &logger)?;
 
-    println!("  PR {}: {}", pr.id, pr.title);
-    println!("    -- author: {}", pr.author.username);
-    println!("    -- link: {}", urls.web_url);
-    for (user, status) in &pr_state.review_status {
-        println!("    {}: {:?}", user, status);
-    }
-
-    Ok(())
+    let res = PullRequestState::from_activity(pr, activity, urls, &logger)?;
+    Ok(res)
 }
