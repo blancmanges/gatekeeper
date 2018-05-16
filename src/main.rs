@@ -13,12 +13,12 @@ extern crate sloggers;
 #[macro_use]
 extern crate structopt;
 
+use gatekeeper::PullRequestState;
+use gatekeeper::RepositoryURLs;
+use gatekeeper::bitbucket::ActivityItem;
 use gatekeeper::bitbucket::BitBucketApiBasicAuth;
 use gatekeeper::bitbucket::PullRequest;
 use gatekeeper::bitbucket::values_from_all_pages;
-use gatekeeper::bitbucket::ActivityItem;
-use gatekeeper::PullRequestState;
-use gatekeeper::RepositoryURLs;
 
 use failure::Error;
 use sloggers::Build;
