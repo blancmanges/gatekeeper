@@ -89,6 +89,7 @@ pub enum ReviewStatus {
     NoReview,
     Voted { vote: i32 },
     VoteNeedReevaluation { voted: i32 },
+    WantsToReviewAgain { voted: Option<i32> },
     RFC { user: String },
     RFCAnswered { user: String },
 }
@@ -163,6 +164,18 @@ impl PullRequestState {
                                                 user: wait_for_user.to_string(),
                                             }
                                         },
+                                        "will\\_revote" => {
+                                            let voted = match *user_review {
+                                                ReviewStatus::WantsToReviewAgain { voted } => voted,
+                                                ReviewStatus::Voted { vote } => Some(vote),
+                                                ReviewStatus::VoteNeedReevaluation { voted } => {
+                                                    Some(voted)
+                                                }
+                                                _ => None,
+                                            };
+                                            *user_review =
+                                                ReviewStatus::WantsToReviewAgain { voted }
+                                        }
                                         unrecognized_cmd => warn!(
                                             pr_state.logger,
                                             "Unrecognized cmd: {}", unrecognized_cmd
