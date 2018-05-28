@@ -14,8 +14,9 @@ secret_*
 tags
 TAGS
 
-## Rendered README
+## Rendered rst files
 README.html
+CONTRIBUTING.html
 
 ## IDEs & editors
 # IntelliJ
@@ -24,6 +25,8 @@ README.html
 
 ### OS & editors junk
 ################################################################################
+
+rusty-tags.vi
 
 ## macOS / OS X
 *.DS_Store
