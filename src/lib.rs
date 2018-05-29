@@ -19,6 +19,7 @@ pub mod bitbucket;
 
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 use bitbucket::ActivityItem;
 use bitbucket::Approval;
@@ -102,6 +103,7 @@ pub struct PullRequestState {
     logger: slog::Logger,
     pub urls: PullrequestIdURLs,
     pub pr: PullRequest,
+    pub labels: HashSet<String>,
 }
 
 impl PullRequestState {
@@ -113,6 +115,7 @@ impl PullRequestState {
     ) -> Result<PullRequestState, Error> {
         lazy_static! {
             static ref RE_VOTE: Regex = Regex::new(r"^(\\?\+|-)?\d$").unwrap();
+            static ref RE_LABEL: Regex = Regex::new(r"^(\\?\+|-)([[:alpha:]]*)$").unwrap();
         }
         let mut pr_state = PullRequestState::new(pr, urls, logger)?;
 
@@ -180,10 +183,31 @@ impl PullRequestState {
                                             *user_review =
                                                 ReviewStatus::WantsToReviewAgain { voted }
                                         }
-                                        unrecognized_cmd => warn!(
-                                            pr_state.logger,
-                                            "Unrecognized cmd: {}", unrecognized_cmd
-                                        ),
+                                        _ => {
+                                            if let Some(caps) = RE_LABEL.captures(cmd) {
+                                                let direction = caps
+                                                    .get(1)
+                                                    .ok_or(failure::err_msg("Internal error: RE_LABEL matched but caps.get(1) failed"))?
+                                                    .as_str()
+                                                    .trim_left_matches('\\');
+                                                let label = caps
+                                                    .get(2)
+                                                    .ok_or(failure::err_msg("Internal error: RE_LABEL matched but caps.get(2) failed"))?
+                                                    .as_str()
+                                                    .to_string();
+                                                match direction {
+                                                    "+" => {
+                                                        pr_state.labels.insert(label);
+                                                    }
+                                                    "-" => {
+                                                        pr_state.labels.remove(&label);
+                                                    }
+                                                    _ => error!(pr_state.logger, "Internal error: RE_LABEL matched '{}' but caps.get(1) returned neither +/-.", cmd),
+                                                }
+                                            } else {
+                                                warn!(pr_state.logger, "Unrecognized cmd: {}", cmd);
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -217,6 +241,7 @@ impl PullRequestState {
             logger,
             urls,
             pr,
+            labels: HashSet::new(),
         })
     }
 }

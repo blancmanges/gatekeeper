@@ -12,6 +12,7 @@ extern crate slog;
 extern crate sloggers;
 #[macro_use]
 extern crate structopt;
+extern crate itertools;
 
 use gatekeeper::bitbucket::values_from_all_pages;
 use gatekeeper::bitbucket::ActivityItem;
@@ -21,6 +22,7 @@ use gatekeeper::PullRequestState;
 use gatekeeper::RepositoryURLs;
 
 use failure::Error;
+use itertools::Itertools;
 use sloggers::Build;
 use structopt::StructOpt;
 
@@ -94,6 +96,9 @@ fn display_pr_results(res: Result<PullRequestState, (PullRequest, Error)>, logge
             println!("  PR {}: {}", pr_state.pr.id, pr_state.pr.title);
             println!("    -- author: {}", pr_state.pr.author.username);
             println!("    -- link: {}", pr_state.urls.web_url);
+            if !pr_state.labels.is_empty() {
+                println!("    -- labels: {}", pr_state.labels.iter().join(", "));
+            }
             for (user, status) in &pr_state.review_status {
                 println!("    {}: {:?}", user, status);
             }
