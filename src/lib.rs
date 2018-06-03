@@ -3,6 +3,8 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 extern crate failure;
+#[macro_use]
+extern crate lazy_static;
 extern crate regex;
 extern crate reqwest;
 extern crate serde;
@@ -98,7 +100,6 @@ pub enum ReviewStatus {
 pub struct PullRequestState {
     pub review_status: HashMap<String, ReviewStatus, RandomState>,
     logger: slog::Logger,
-    regex_vote: Regex,
     pub urls: PullrequestIdURLs,
     pub pr: PullRequest,
 }
@@ -110,6 +111,9 @@ impl PullRequestState {
         urls: PullrequestIdURLs,
         logger: &slog::Logger,
     ) -> Result<PullRequestState, Error> {
+        lazy_static! {
+            static ref RE_VOTE: Regex = Regex::new(r"^(\\?\+|-)?\d$").unwrap();
+        }
         let mut pr_state = PullRequestState::new(pr, urls, logger)?;
 
         for change in activity {
@@ -153,7 +157,7 @@ impl PullRequestState {
                                 while let Some(cmd) = splitter.next() {
                                     debug!(pr_state.logger, "CMD: {}", cmd);
                                     match cmd {
-                                        vote if pr_state.regex_vote.is_match(vote) => {
+                                        vote if RE_VOTE.is_match(vote) => {
                                             *user_review = ReviewStatus::Voted {
                                                 vote: cmd.trim_left_matches('\\').parse::<i32>()?,
                                             }
@@ -207,12 +211,10 @@ impl PullRequestState {
         urls: PullrequestIdURLs,
         logger: &slog::Logger,
     ) -> Result<PullRequestState, Error> {
-        let regex_vote = Regex::new(r"^(\\?\+|-)?\d$")?;
         let logger = logger.new(o!());
         Ok(PullRequestState {
             review_status: HashMap::new(),
             logger,
-            regex_vote,
             urls,
             pr,
         })
