@@ -44,6 +44,7 @@ fn main() {
         let mut logger = sloggers::terminal::TerminalLoggerBuilder::new();
         logger.level(sloggers::types::Severity::Trace);
         logger.destination(sloggers::terminal::Destination::Stderr);
+        logger.format(sloggers::types::Format::Compact);
         logger.build().unwrap()
     };
 
