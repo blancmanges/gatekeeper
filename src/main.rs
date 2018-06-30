@@ -15,12 +15,6 @@ extern crate slog_bunyan;
 extern crate structopt;
 extern crate itertools;
 
-use gatekeeper::bitbucket::values_from_all_pages;
-use gatekeeper::bitbucket::ActivityItem;
-use gatekeeper::bitbucket::BitBucketApiBasicAuth;
-use gatekeeper::bitbucket::PullRequest;
-use gatekeeper::PullRequestState;
-use gatekeeper::RepositoryURLs;
 use std::fs::OpenOptions;
 
 use failure::Error;
@@ -28,6 +22,13 @@ use itertools::Itertools;
 use slog::Drain;
 use slog::FnValue;
 use structopt::StructOpt;
+
+use gatekeeper::bitbucket::values_from_all_pages;
+use gatekeeper::bitbucket::ActivityItem;
+use gatekeeper::bitbucket::BitBucketApiBasicAuth;
+use gatekeeper::bitbucket::PullRequest;
+use gatekeeper::PullRequestState;
+use gatekeeper::RepositoryURLs;
 
 #[derive(StructOpt, Debug)]
 #[structopt()]
