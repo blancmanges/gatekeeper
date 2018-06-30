@@ -20,12 +20,12 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
+use failure::Error;
+use regex::Regex;
+
 use bitbucket::ActivityItem;
 use bitbucket::Approval;
 use bitbucket::PullRequest;
-
-use failure::Error;
-use regex::Regex;
 
 #[derive(Debug)]
 pub struct RepositoryURLs {
