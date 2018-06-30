@@ -9,7 +9,8 @@ extern crate reqwest;
 extern crate serde_json;
 #[macro_use]
 extern crate slog;
-extern crate sloggers;
+extern crate slog_async;
+extern crate slog_bunyan;
 #[macro_use]
 extern crate structopt;
 extern crate itertools;
@@ -20,10 +21,12 @@ use gatekeeper::bitbucket::BitBucketApiBasicAuth;
 use gatekeeper::bitbucket::PullRequest;
 use gatekeeper::PullRequestState;
 use gatekeeper::RepositoryURLs;
+use std::fs::OpenOptions;
 
 use failure::Error;
 use itertools::Itertools;
-use sloggers::Build;
+use slog::Drain;
+use slog::FnValue;
 use structopt::StructOpt;
 
 #[derive(StructOpt, Debug)]
@@ -41,11 +44,25 @@ struct Opt {
 
 fn main() {
     let logger = {
-        let mut logger = sloggers::terminal::TerminalLoggerBuilder::new();
-        logger.level(sloggers::types::Severity::Trace);
-        logger.destination(sloggers::terminal::Destination::Stderr);
-        logger.format(sloggers::types::Format::Compact);
-        logger.build().unwrap()
+        let json_log_path = "gatekeeper.json.log";
+        let json_log_file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(json_log_path)
+            .unwrap();
+        let drain = slog_bunyan::new(json_log_file).build().fuse();
+        let drain = slog_async::Async::new(drain).build().fuse();
+        let logger = slog::Logger::root(
+            drain,
+            o!(
+                    "src_code_module" => FnValue(|r| r.module()),
+                    "src_cloc_file" => FnValue(|r| r.file()),
+                    "src_cloc_line" => FnValue(|r| r.line()),
+                    "src_cloc_column" => FnValue(|r| r.column()),
+                ),
+        );
+        logger
     };
 
     app(&logger).unwrap();

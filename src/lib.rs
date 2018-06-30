@@ -13,7 +13,6 @@ extern crate serde_derive;
 extern crate serde_json;
 #[macro_use]
 extern crate slog;
-extern crate sloggers;
 
 pub mod bitbucket;
 
