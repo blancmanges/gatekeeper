@@ -14,7 +14,7 @@ regex = "1.0.0"
 reqwest = "0.8.5"
 serde = "1.0.69"
 serde_derive = "1.0.39"
-serde_json = "1.0.18"
+serde_json = "1.0.26"
 slog = { version = "2.3.2", features = ["max_level_trace", "release_max_level_info"] }
 slog-async = "2.3.0"
 slog-bunyan = "2.1.0"
