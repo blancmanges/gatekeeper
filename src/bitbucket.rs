@@ -29,11 +29,11 @@ impl BitBucketApiBasicAuth {
         }
     }
     pub fn get_json(&self, url: &str) -> reqwest::Result<reqwest::Response> {
-        let mut req_builder = self.client.get(url);
-        req_builder
+        self.client
+            .get(url)
             .basic_auth(self.username.clone(), Some(self.password.clone()))
-            .header(reqwest::header::ContentType::json());
-        req_builder.send()
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .send()
     }
 }
 
