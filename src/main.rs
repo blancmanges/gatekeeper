@@ -115,6 +115,7 @@ fn display_pr_results(res: Result<PullRequestState, (PullRequest, Error)>, logge
             println!("  PR {}: {}", pr_state.pr.id, pr_state.pr.title);
             println!("    -- author: {}", pr_state.pr.author.username);
             println!("    -- link: {}", pr_state.urls.web_url);
+            println!("    -- current_hash: {:?}", pr_state.current_hash);
             if !pr_state.labels.is_empty() {
                 println!("    -- labels: {}", pr_state.labels.iter().join(", "));
             }

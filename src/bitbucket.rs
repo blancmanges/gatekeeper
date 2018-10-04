@@ -122,13 +122,14 @@ pub struct PullRequestUser {
     pub username: String,
 }
 
+#[allow(dead_code)]
 type Ignored = serde_json::value::Value;
 
 #[derive(PartialEq, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ActivityItem {
     Comment { comment: Comment },
-    Update { update: Ignored },
+    Update { update: Update },
     Approval { approval: Approval },
 }
 
@@ -164,4 +165,19 @@ pub struct Approval {
 #[derive(Deserialize, PartialEq, Debug, Clone)]
 pub struct User {
     pub username: String,
+}
+
+#[derive(Deserialize, PartialEq, Debug, Clone)]
+pub struct Update {
+    pub source: Source,
+}
+
+#[derive(Deserialize, PartialEq, Debug, Clone)]
+pub struct Source {
+    pub commit: Commit,
+}
+
+#[derive(Deserialize, PartialEq, Debug, Clone)]
+pub struct Commit {
+    pub hash: String,
 }

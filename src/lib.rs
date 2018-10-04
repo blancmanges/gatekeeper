@@ -89,8 +89,8 @@ impl UserCommand {
 #[derive(Debug)]
 pub enum ReviewStatus {
     NoReview,
-    Voted { vote: i32 },
-    VoteNeedReevaluation { voted: i32 },
+    Voted { vote: i32, vote_hash: String },
+    VoteNeedReevaluation { voted: i32, vote_hash: String },
     WantsToReviewAgain { voted: Option<i32> },
     RFC { user: String },
     RFCAnswered { user: String },
@@ -103,6 +103,7 @@ pub struct PullRequestState {
     pub urls: PullrequestIdURLs,
     pub pr: PullRequest,
     pub labels: HashSet<String>,
+    pub current_hash: Option<String>,
 }
 
 impl PullRequestState {
@@ -126,9 +127,13 @@ impl PullRequestState {
                 } => {
                     let approve_user = user.username.to_string();
                     debug!(pr_state.logger, "User {:?} approves", approve_user);
-                    pr_state
-                        .review_status
-                        .insert(approve_user, ReviewStatus::Voted { vote: 1 });
+                    pr_state.review_status.insert(
+                        approve_user,
+                        ReviewStatus::Voted {
+                            vote: 1,
+                            vote_hash: pr_state.current_hash.clone().unwrap(),
+                        },
+                    );
                 }
 
                 ActivityItem::Comment { comment } => {
@@ -162,6 +167,7 @@ impl PullRequestState {
                                         vote if RE_VOTE.is_match(vote) => {
                                             *user_review = ReviewStatus::Voted {
                                                 vote: cmd.trim_left_matches('\\').parse::<i32>()?,
+                                                vote_hash: pr_state.current_hash.clone().unwrap(),
                                             }
                                         }
                                         "rfc" => if let Some(wait_for_user) = splitter.next() {
@@ -173,10 +179,11 @@ impl PullRequestState {
                                         "will\\_revote" => {
                                             let voted = match *user_review {
                                                 ReviewStatus::WantsToReviewAgain { voted } => voted,
-                                                ReviewStatus::Voted { vote } => Some(vote),
-                                                ReviewStatus::VoteNeedReevaluation { voted } => {
-                                                    Some(voted)
-                                                }
+                                                ReviewStatus::Voted { vote, .. } => Some(vote),
+                                                ReviewStatus::VoteNeedReevaluation {
+                                                    voted,
+                                                    ..
+                                                } => Some(voted),
                                                 _ => None,
                                             };
                                             *user_review =
@@ -214,15 +221,24 @@ impl PullRequestState {
                     }
                 }
 
-                ActivityItem::Update { .. } => for status in pr_state.review_status.values_mut() {
-                    let should_update = match *status {
-                        ReviewStatus::Voted { vote } => Some(vote),
-                        _ => None,
-                    };
-                    if let Some(vote) = should_update {
-                        *status = ReviewStatus::VoteNeedReevaluation { voted: vote };
+                ActivityItem::Update { update } => {
+                    pr_state.current_hash = Some(update.source.commit.hash);
+                    for status in pr_state.review_status.values_mut() {
+                        let should_update = match *status {
+                            ReviewStatus::Voted {
+                                vote,
+                                ref vote_hash,
+                            } => Some((vote, vote_hash.clone())),
+                            _ => None,
+                        };
+                        if let Some((vote, vote_hash)) = should_update {
+                            *status = ReviewStatus::VoteNeedReevaluation {
+                                voted: vote,
+                                vote_hash,
+                            };
+                        }
                     }
-                },
+                }
             }
         }
 
@@ -241,6 +257,7 @@ impl PullRequestState {
             urls,
             pr,
             labels: HashSet::new(),
+            current_hash: None,
         })
     }
 }
