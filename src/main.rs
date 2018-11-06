@@ -9,11 +9,10 @@ extern crate reqwest;
 extern crate serde_json;
 #[macro_use]
 extern crate slog;
+extern crate itertools;
 extern crate slog_async;
 extern crate slog_bunyan;
-#[macro_use]
 extern crate structopt;
-extern crate itertools;
 
 use std::fs::OpenOptions;
 
@@ -21,6 +20,7 @@ use failure::Error;
 use itertools::Itertools;
 use slog::Drain;
 use slog::FnValue;
+use std::result;
 use structopt::StructOpt;
 
 use gatekeeper::bitbucket::values_from_all_pages;
@@ -30,16 +30,35 @@ use gatekeeper::bitbucket::PullRequest;
 use gatekeeper::PullRequestState;
 use gatekeeper::RepositoryURLs;
 
+type Result<T> = result::Result<T, Error>;
+
 #[derive(StructOpt, Debug)]
 #[structopt()]
 struct Opt {
-    #[structopt(short = "u", long = "bitbucket-username")]
+    #[structopt(
+        short = "u",
+        long = "bitbucket-username",
+        env = "BITBUCKET_USERNAME"
+    )]
     bitbucket_username: String,
-    #[structopt(short = "p", long = "bitbucket-password")]
+    #[structopt(
+        short = "p",
+        long = "bitbucket-password",
+        env = "BITBUCKET_PASSWORD"
+    )]
     bitbucket_password: String,
-    #[structopt(short = "o", long = "bitbucket-repo-owner")]
+    #[structopt(
+        short = "o",
+        long = "bitbucket-repo-owner",
+        env = "REPO_OWNER"
+    )]
     repo_owner: String,
-    #[structopt(short = "r", long = "bitbucket-repo-slug")]
+    #[structopt(
+        short = "r",
+        long = "bitbucket-repo-slug",
+        env = "REPO_SLUGS",
+        use_delimiter = true
+    )]
     repo_slugs: Vec<String>,
 }
 
@@ -54,7 +73,7 @@ fn main() {
             .unwrap();
         let drain = slog_bunyan::new(json_log_file).build().fuse();
         let drain = slog_async::Async::new(drain).build().fuse();
-        let logger = slog::Logger::root(
+        slog::Logger::root(
             drain,
             o!(
                     "src_code_module" => FnValue(|r| r.module()),
@@ -62,14 +81,13 @@ fn main() {
                     "src_cloc_line" => FnValue(|r| r.line()),
                     "src_cloc_column" => FnValue(|r| r.column()),
                 ),
-        );
-        logger
+        )
     };
 
     app(&logger).unwrap();
 }
 
-fn app(logger: &slog::Logger) -> Result<(), Error> {
+fn app(logger: &slog::Logger) -> Result<()> {
     debug!(logger, "Starting application");
 
     trace!(logger, "Processing args");
@@ -102,16 +120,21 @@ fn display_repo(repo_slug: &str, _logger: &slog::Logger) {
     println!("------------------------------------------------------------------------");
 }
 
-fn display_pr_results(res: Result<PullRequestState, (PullRequest, Error)>, logger: &slog::Logger) {
+enum PullRequestProcessing {
+    Success(PullRequestState),
+    Failure(PullRequest, Error),
+}
+
+fn display_pr_results(res: PullRequestProcessing, logger: &slog::Logger) {
     match res {
-        Err((pr, e)) => {
+        PullRequestProcessing::Failure(pr, e) => {
             error!(logger, "Error processing PR {}. Err: {}", pr.id, e);
             println!("  PR {}: {}", pr.id, pr.title);
             println!("    -- author: {}", pr.author.username);
             println!("    -- link: {}", pr.links.slf.href);
             println!("    PROCESSING ERROR");
         }
-        Ok(pr_state) => {
+        PullRequestProcessing::Success(pr_state) => {
             println!("  PR {}: {}", pr_state.pr.id, pr_state.pr.title);
             println!("    -- author: {}", pr_state.pr.author.username);
             println!("    -- link: {}", pr_state.urls.web_url);
@@ -131,7 +154,7 @@ fn repo_prs(
     repo_slug: &str,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
-) -> Result<Vec<Result<PullRequestState, (PullRequest, Error)>>, Error> {
+) -> Result<Vec<PullRequestProcessing>> {
     let logger = logger.new(o!(
         "repo_owner" => repo_owner.to_string(),
         "repo_slug" => repo_slug.to_string(),
@@ -146,8 +169,10 @@ fn repo_prs(
     debug!(logger, "Pull requests: {:?}", pullrequests);
     let res = pullrequests
         .into_iter()
-        .map(|pr| repo_pr(pr.clone(), &urls, &client, &logger).map_err(|e| (pr, e)))
-        .collect();
+        .map(|pr| {
+            repo_pr(pr.clone(), &urls, &client, &logger)
+                .unwrap_or_else(|e| PullRequestProcessing::Failure(pr, e))
+        }).collect();
     Ok(res)
 }
 
@@ -156,7 +181,7 @@ fn repo_pr(
     urls: &RepositoryURLs,
     client: &BitBucketApiBasicAuth,
     logger: &slog::Logger,
-) -> Result<PullRequestState, Error> {
+) -> Result<PullRequestProcessing> {
     let logger = logger.new(o!(
         "pr_id" => pr.id,
     ));
@@ -176,5 +201,5 @@ fn repo_pr(
     trace!(logger, "Activity: {:?}", activity);
 
     let res = PullRequestState::from_activity(pr, activity, urls, &logger)?;
-    Ok(res)
+    Ok(PullRequestProcessing::Success(res))
 }
