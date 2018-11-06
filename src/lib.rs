@@ -75,7 +75,7 @@ pub struct UserCommand {
 impl UserCommand {
     pub fn new(user: &str, command: &str) -> UserCommand {
         let command = if command.starts_with("\\+") {
-            command.trim_left_matches("\\")
+            command.trim_left_matches('\\')
         } else {
             command
         };
@@ -193,12 +193,12 @@ impl PullRequestState {
                                             if let Some(caps) = RE_LABEL.captures(cmd) {
                                                 let direction = caps
                                                     .get(1)
-                                                    .ok_or(failure::err_msg("Internal error: RE_LABEL matched but caps.get(1) failed"))?
+                                                    .ok_or_else(|| failure::err_msg("Internal error: RE_LABEL matched but caps.get(1) failed"))?
                                                     .as_str()
                                                     .trim_left_matches('\\');
                                                 let label = caps
                                                     .get(2)
-                                                    .ok_or(failure::err_msg("Internal error: RE_LABEL matched but caps.get(2) failed"))?
+                                                    .ok_or_else(|| failure::err_msg("Internal error: RE_LABEL matched but caps.get(2) failed"))?
                                                     .as_str()
                                                     .to_string();
                                                 match direction {
