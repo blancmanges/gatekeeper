@@ -82,8 +82,8 @@ where
     T: serde::de::DeserializeOwned + Debug,
 {
     let logger = logger.new(o!(
-            "url" => url.to_string(),
-        ));
+        "url" => url.to_string(),
+    ));
 
     trace!(logger, "Obtaining first page");
     let mut first_page = client.get_json(url)?;

@@ -23,9 +23,9 @@ use std::collections::HashSet;
 use failure::Error;
 use regex::Regex;
 
-use bitbucket::ActivityItem;
-use bitbucket::Approval;
-use bitbucket::PullRequest;
+use crate::bitbucket::ActivityItem;
+use crate::bitbucket::Approval;
+use crate::bitbucket::PullRequest;
 
 #[derive(Debug)]
 pub struct RepositoryURLs {
@@ -170,12 +170,14 @@ impl PullRequestState {
                                                 vote_hash: pr_state.current_hash.clone().unwrap(),
                                             }
                                         }
-                                        "rfc" => if let Some(wait_for_user) = splitter.next() {
-                                            debug!(pr_state.logger, "ARG: {}", wait_for_user);
-                                            *user_review = ReviewStatus::RFC {
-                                                user: wait_for_user.to_string(),
+                                        "rfc" => {
+                                            if let Some(wait_for_user) = splitter.next() {
+                                                debug!(pr_state.logger, "ARG: {}", wait_for_user);
+                                                *user_review = ReviewStatus::RFC {
+                                                    user: wait_for_user.to_string(),
+                                                }
                                             }
-                                        },
+                                        }
                                         "will\\_revote" => {
                                             let voted = match *user_review {
                                                 ReviewStatus::WantsToReviewAgain { voted } => voted,

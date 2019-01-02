@@ -35,23 +35,11 @@ type Result<T> = result::Result<T, Error>;
 #[derive(StructOpt, Debug)]
 #[structopt()]
 struct Opt {
-    #[structopt(
-        short = "u",
-        long = "bitbucket-username",
-        env = "BITBUCKET_USERNAME"
-    )]
+    #[structopt(short = "u", long = "bitbucket-username", env = "BITBUCKET_USERNAME")]
     bitbucket_username: String,
-    #[structopt(
-        short = "p",
-        long = "bitbucket-password",
-        env = "BITBUCKET_PASSWORD"
-    )]
+    #[structopt(short = "p", long = "bitbucket-password", env = "BITBUCKET_PASSWORD")]
     bitbucket_password: String,
-    #[structopt(
-        short = "o",
-        long = "bitbucket-repo-owner",
-        env = "REPO_OWNER"
-    )]
+    #[structopt(short = "o", long = "bitbucket-repo-owner", env = "REPO_OWNER")]
     repo_owner: String,
     #[structopt(
         short = "r",
@@ -76,11 +64,11 @@ fn main() {
         slog::Logger::root(
             drain,
             o!(
-                    "src_code_module" => FnValue(|r| r.module()),
-                    "src_cloc_file" => FnValue(|r| r.file()),
-                    "src_cloc_line" => FnValue(|r| r.line()),
-                    "src_cloc_column" => FnValue(|r| r.column()),
-                ),
+                "src_code_module" => FnValue(|r| r.module()),
+                "src_cloc_file" => FnValue(|r| r.file()),
+                "src_cloc_line" => FnValue(|r| r.line()),
+                "src_cloc_column" => FnValue(|r| r.column()),
+            ),
         )
     };
 
@@ -172,7 +160,8 @@ fn repo_prs(
         .map(|pr| {
             repo_pr(pr.clone(), &urls, &client, &logger)
                 .unwrap_or_else(|e| PullRequestProcessing::Failure(pr, e))
-        }).collect();
+        })
+        .collect();
     Ok(res)
 }
 
