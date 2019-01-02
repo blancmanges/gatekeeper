@@ -5,6 +5,7 @@ authors = ["Konrad Gądek <kgadek@gmail.com>"]
 license = "MPL-2.0"
 repository = "https://github.com/blancmanges/gatekeeper"
 description = "Gatekeeper, a bitbucket bot."
+edition = "2018"
 
 [dependencies]
 failure = "0.1.1"
