@@ -8,7 +8,7 @@ description = "Gatekeeper, a bitbucket bot."
 edition = "2018"
 
 [dependencies]
-failure = "0.1.1"
+failure = "0.1.5"
 itertools = "0.7.8"
 lazy_static = "1.0.2"
 regex = "1.0.5"
