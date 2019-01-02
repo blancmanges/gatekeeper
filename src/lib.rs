@@ -117,7 +117,7 @@ impl PullRequestState {
             static ref RE_VOTE: Regex = Regex::new(r"^(\\?\+|-)?\d$").unwrap();
             static ref RE_LABEL: Regex = Regex::new(r"^(\\?\+|-)([[:alpha:]]*)$").unwrap();
         }
-        let mut pr_state = PullRequestState::new(pr, urls, logger)?;
+        let mut pr_state = PullRequestState::new(pr, urls, logger);
 
         for change in activity {
             trace!(pr_state.logger, "Change: {:?}", change);
@@ -247,19 +247,15 @@ impl PullRequestState {
         Ok(pr_state)
     }
 
-    fn new(
-        pr: PullRequest,
-        urls: PullrequestIdURLs,
-        logger: &slog::Logger,
-    ) -> Result<PullRequestState, Error> {
+    fn new(pr: PullRequest, urls: PullrequestIdURLs, logger: &slog::Logger) -> PullRequestState {
         let logger = logger.new(o!());
-        Ok(PullRequestState {
+        PullRequestState {
             review_status: HashMap::new(),
             logger,
             urls,
             pr,
             labels: HashSet::new(),
             current_hash: None,
-        })
+        }
     }
 }
