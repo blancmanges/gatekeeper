@@ -60,7 +60,7 @@ fn main() {
             .open(json_log_path)
             .unwrap();
         let drain = slog_bunyan::new(json_log_file).build().fuse();
-        let drain = slog_async::Async::new(drain).build().fuse();
+        let drain = slog_async::Async::new(drain).chan_size(256).build().fuse();
         slog::Logger::root(
             drain,
             o!(
