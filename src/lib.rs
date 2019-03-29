@@ -75,7 +75,7 @@ pub struct UserCommand {
 impl UserCommand {
     pub fn new(user: &str, command: &str) -> UserCommand {
         let command = if command.starts_with("\\+") {
-            command.trim_left_matches('\\')
+            command.trim_start_matches('\\')
         } else {
             command
         };
@@ -166,7 +166,9 @@ impl PullRequestState {
                                     match cmd {
                                         vote if RE_VOTE.is_match(vote) => {
                                             *user_review = ReviewStatus::Voted {
-                                                vote: cmd.trim_left_matches('\\').parse::<i32>()?,
+                                                vote: cmd
+                                                    .trim_start_matches('\\')
+                                                    .parse::<i32>()?,
                                                 vote_hash: pr_state.current_hash.clone().unwrap(),
                                             }
                                         }
