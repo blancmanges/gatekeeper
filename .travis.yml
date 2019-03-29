@@ -11,7 +11,7 @@ matrix:
 before_script:
   - rustup component add rustfmt
   - cargo fmt --all -- --check
-  - bash -euo pipefail .mpl-check.sh
+  - bash -euo pipefail scripts/mpl-check.sh
 script:
   - cargo build --verbose --all
   - cargo test --verbose --all
