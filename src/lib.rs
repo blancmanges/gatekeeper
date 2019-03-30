@@ -199,7 +199,7 @@ impl PullRequestState {
                                                     .get(1)
                                                     .ok_or_else(|| failure::err_msg("Internal error: RE_LABEL matched but caps.get(1) failed"))?
                                                     .as_str()
-                                                    .trim_left_matches('\\');
+                                                    .trim_start_matches('\\');
                                                 let label = caps
                                                     .get(2)
                                                     .ok_or_else(|| failure::err_msg("Internal error: RE_LABEL matched but caps.get(2) failed"))?
