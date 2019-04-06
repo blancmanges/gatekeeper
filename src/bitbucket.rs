@@ -6,9 +6,9 @@ use std::fmt::Debug;
 
 use failure::Error;
 use reqwest;
-use serde;
+use serde::Deserialize;
 use serde_json;
-use slog;
+use slog::{debug, o, trace};
 
 pub struct BitBucketApiBasicAuth {
     client: reqwest::Client,

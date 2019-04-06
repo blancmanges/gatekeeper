@@ -2,37 +2,19 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-extern crate failure;
-extern crate gatekeeper;
-extern crate regex;
-extern crate reqwest;
-extern crate serde_json;
-#[macro_use]
-extern crate slog;
-extern crate itertools;
-extern crate slog_async;
-extern crate slog_bunyan;
-extern crate structopt;
-
-use std::fs::OpenOptions;
+use gatekeeper::{
+    bitbucket::{values_from_all_pages, ActivityItem, BitBucketApiBasicAuth, PullRequest},
+    PullRequestState, RepositoryURLs,
+};
 
 use failure::Error;
 use itertools::Itertools;
-use slog::Drain;
-use slog::FnValue;
-use std::result;
+use slog::{debug, error, o, trace, Drain, FnValue};
 use structopt::StructOpt;
 
-use gatekeeper::bitbucket::values_from_all_pages;
-use gatekeeper::bitbucket::ActivityItem;
-use gatekeeper::bitbucket::BitBucketApiBasicAuth;
-use gatekeeper::bitbucket::PullRequest;
-use gatekeeper::PullRequestState;
-use gatekeeper::RepositoryURLs;
+type Result<T> = std::result::Result<T, Error>;
 
-type Result<T> = result::Result<T, Error>;
-
-#[derive(StructOpt, Debug)]
+#[derive(structopt::StructOpt, Debug)]
 #[structopt()]
 struct Opt {
     #[structopt(short = "u", long = "bitbucket-username", env = "BITBUCKET_USERNAME")]
@@ -53,7 +35,7 @@ struct Opt {
 fn main() {
     let logger = {
         let json_log_path = "gatekeeper.json.log";
-        let json_log_file = OpenOptions::new()
+        let json_log_file = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .append(true)

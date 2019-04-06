@@ -2,30 +2,20 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-extern crate failure;
-#[macro_use]
-extern crate lazy_static;
-extern crate regex;
-extern crate reqwest;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-#[macro_use]
-extern crate slog;
-
 pub mod bitbucket;
+
+use crate::bitbucket::ActivityItem;
+use crate::bitbucket::Approval;
+use crate::bitbucket::PullRequest;
 
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
 use failure::Error;
+use lazy_static::lazy_static;
 use regex::Regex;
-
-use crate::bitbucket::ActivityItem;
-use crate::bitbucket::Approval;
-use crate::bitbucket::PullRequest;
+use slog::{debug, error, o, trace, warn};
 
 #[derive(Debug)]
 pub struct RepositoryURLs {
