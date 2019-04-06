@@ -32,6 +32,11 @@ struct Opt {
     repo_slugs: Vec<String>,
 }
 
+#[derive(slog_derive::KV, Clone, slog_derive::SerdeValue, serde::Serialize)]
+struct Foo {
+    foo: &'static str,
+}
+
 fn main() {
     let logger = {
         let json_log_path = "gatekeeper.json.log";
@@ -58,7 +63,7 @@ fn main() {
 }
 
 fn app(logger: &slog::Logger) -> Result<()> {
-    debug!(logger, "Starting application");
+    debug!(logger, "Starting application"; "foo" => Foo { foo: "foo" });
 
     trace!(logger, "Processing args");
     let app_args = Opt::from_args();
